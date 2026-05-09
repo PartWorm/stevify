@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft Skin Viewer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="ui">
+    <div class="title">Minecraft Skin Viewer</div>
+    <div class="hint">
+      Left Click: Rotate Camera<br>
+      Right Click: Pan<br>
+      Scroll: Zoom<br>
+      Drag Body Parts: Pose Character
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./node_modules/three/build/three.module.js",
+      "three/examples/jsm/": "./node_modules/three/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module" src="renderer.js"></script>
+</body>
+</html>
