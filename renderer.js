@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 const canvas = document.getElementById('canvas');
 
@@ -304,6 +303,20 @@ window.electronAPI.onSkinUpdated(() => {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+let selectedPart = null;
+let isDraggingPart = false;
+let previousMouse = new THREE.Vector2();
+
+function getPartFromIntersection(object) {
+  let target = object;
+
+  while (target && !selectableParts.includes(target)) {
+    target = target.parent;
+  }
+
+  return target;
+}
+
 window.addEventListener('pointerdown', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -321,29 +334,35 @@ window.addEventListener('pointerdown', (event) => {
   const intersects = raycaster.intersectObjects(meshes);
 
   if (intersects.length > 0) {
-    let target = intersects[0].object;
+    selectedPart = getPartFromIntersection(intersects[0].object);
 
-    while (target && !selectableParts.includes(target)) {
-      target = target.parent;
-    }
+    if (selectedPart) {
+      isDraggingPart = true;
+      orbit.enabled = false;
 
-    if (target) {
-      if (currentTransform) {
-        scene.remove(currentTransform);
-      }
-
-      currentTransform = new TransformControls(camera, renderer.domElement);
-      currentTransform.attach(target);
-      currentTransform.setMode('rotate');
-      currentTransform.size = 0.75;
-
-      currentTransform.addEventListener('dragging-changed', (e) => {
-        orbit.enabled = !e.value;
-      });
-
-      scene.add(currentTransform.getHelper());
+      previousMouse.set(event.clientX, event.clientY);
     }
   }
+});
+
+window.addEventListener('pointermove', (event) => {
+  if (!isDraggingPart || !selectedPart) return;
+
+  const deltaX = event.clientX - previousMouse.x;
+  const deltaY = event.clientY - previousMouse.y;
+
+  // Horizontal drag = Y rotation
+  selectedPart.rotation.y += deltaX * 0.01;
+
+  // Vertical drag = X rotation
+  selectedPart.rotation.x += deltaY * 0.01;
+
+  previousMouse.set(event.clientX, event.clientY);
+});
+
+window.addEventListener('pointerup', () => {
+  isDraggingPart = false;
+  orbit.enabled = true;
 });
 
 window.addEventListener('keydown', (e) => {
