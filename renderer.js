@@ -27,7 +27,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const orbit = new OrbitControls(camera, renderer.domElement);
-orbit.enableDamping = true;
+// orbit.enableDamping = true;
 
 const light = new THREE.DirectionalLight(0xffffff, 1.2);
 light.position.set(20, 30, 20);
@@ -341,7 +341,7 @@ window.addEventListener('pointerdown', (event) => {
         orbit.enabled = !e.value;
       });
 
-      scene.add(currentTransform);
+      scene.add(currentTransform.getHelper());
     }
   }
 });
