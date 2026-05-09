@@ -4,20 +4,35 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 const canvas = document.getElementById('canvas');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2a2a2a);
+scene.background = new THREE.Color('skyblue');
 
-const camera = new THREE.PerspectiveCamera(
+let cam = () => {
+  let ww = window.innerWidth;
+  let wh = window.innerHeight;
+  return [
+    -ww / 2 * 0.05,
+    ww / 2 * 0.05,
+    wh / 2 * 0.05,
+    -wh / 2 * 0.05,
+  ];
+};
+
+let camera = new THREE.PerspectiveCamera(
   45,
-  window.innerWidth / window.innerHeight,
+  1,
   0.1,
   1000
 );
-
-camera.position.set(0, 18, 35);
+camera = new THREE.OrthographicCamera(
+  ...cam(),
+  1,
+  1000,
+);
+camera.position.set(-40, 60, 50);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: true
+  antialias: false,
 });
 
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -27,20 +42,24 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const orbit = new OrbitControls(camera, renderer.domElement);
 // orbit.enableDamping = true;
+orbit.target.set(0, 16, 0);
 
+/*
 const light = new THREE.DirectionalLight(0xffffff, 1.2);
 light.position.set(20, 30, 20);
 light.castShadow = true;
 scene.add(light);
+*/
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
+/*
 const grid = new THREE.GridHelper(100, 100);
 scene.add(grid);
+*/
 
 const loader = new THREE.TextureLoader();
 
-let skinTexture;
 let playerRoot;
 let currentTransform;
 
@@ -102,14 +121,7 @@ function createCube(w, h, d, uv, texture, inflate = 0) {
 
   uvAttr.needsUpdate = true;
 
-  const material = new THREE.MeshStandardMaterial({
-    map: texture,
-    transparent: true,
-    alphaTest: 0.1,
-    side: THREE.DoubleSide,
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 
@@ -128,10 +140,32 @@ function createPart(name, innerMesh, outerMesh, position) {
 
   group.position.copy(position);
 
-  selectableParts.push(group);
-
   return group;
 }
+
+function createPivotForPart(part, pivotPosition, y, z) {
+  if (typeof pivotPosition === 'number') {
+    pivotPosition = new THREE.Vector3(pivotPosition, y, z);
+  };
+
+  const pivot = new THREE.Group();
+
+  pivot.position.copy(pivotPosition);
+
+  scene.add(pivot);
+  pivot.add(part);
+
+  // Move mesh so it keeps the same world position
+  part.position.sub(pivotPosition);
+
+  selectableParts.push(pivot);
+
+  return pivot;
+}
+
+let mat;
+
+let head_pv;
 
 function buildPlayer(texture) {
   if (playerRoot) {
@@ -181,8 +215,8 @@ function buildPlayer(texture) {
     headOuter,
     new THREE.Vector3(0, 28, 0)
   );
-
-  playerRoot.add(head);
+  head_pv = createPivotForPart(head, new THREE.Vector3(0, 24, 0));
+  playerRoot.add();
 
   const bodyInner = createCube(
     8,
@@ -252,6 +286,7 @@ function buildPlayer(texture) {
     createCube(4, 12, 4, armUV(48, 48), bodyMaterial, 0.5),
     new THREE.Vector3(6, 18, 0)
   );
+  playerRoot.add(createPivotForPart(leftArm, 6, 22, 0));
 
   const rightArm = createPart(
     'rightArm',
@@ -259,6 +294,7 @@ function buildPlayer(texture) {
     createCube(4, 12, 4, armUV(40, 32), bodyMaterial, 0.5),
     new THREE.Vector3(-6, 18, 0)
   );
+  playerRoot.add(createPivotForPart(rightArm, -6, 22, 0));
 
   const leftLeg = createPart(
     'leftLeg',
@@ -266,6 +302,7 @@ function buildPlayer(texture) {
     createCube(4, 12, 4, legUV(0, 48), bodyMaterial, 0.5),
     new THREE.Vector3(2, 6, 0)
   );
+  playerRoot.add(createPivotForPart(leftLeg, 2, 12, 0));
 
   const rightLeg = createPart(
     'rightLeg',
@@ -273,11 +310,7 @@ function buildPlayer(texture) {
     createCube(4, 12, 4, legUV(0, 32), bodyMaterial, 0.5),
     new THREE.Vector3(-2, 6, 0)
   );
-
-  playerRoot.add(leftArm);
-  playerRoot.add(rightArm);
-  playerRoot.add(leftLeg);
-  playerRoot.add(rightLeg);
+  playerRoot.add(createPivotForPart(rightLeg, -2, 12, 0));
 
   scene.add(playerRoot);
 }
@@ -285,12 +318,24 @@ function buildPlayer(texture) {
 function loadSkin() {
   loader.load(
     './skins/skin.png?' + Date.now(),
-    (texture) => {
-      console.log('skin load');
+    texture => {
+      texture.needsUpdate = true;
       nearestFilter(texture);
-      skinTexture = texture;
-      buildPlayer(texture);
-    }
+      if (!mat) {
+        mat = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          alphaTest: 0.1,
+          side: THREE.DoubleSide,
+        });
+        buildPlayer();
+      }
+      else {
+        mat.map.dispose();
+        mat.map = texture;
+        mat.needsUpdate = true;
+      }
+    },
   );
 }
 
@@ -351,11 +396,20 @@ window.addEventListener('pointermove', (event) => {
   const deltaX = event.clientX - previousMouse.x;
   const deltaY = event.clientY - previousMouse.y;
 
-  // Horizontal drag = Y rotation
-  selectedPart.rotation.y += deltaX * 0.01;
+  const yaw = orbit.getAzimuthalAngle();
+  console.log(yaw);
 
-  // Vertical drag = X rotation
-  selectedPart.rotation.x += deltaY * 0.01;
+  if (selectedPart == head_pv) {
+    selectedPart.rotation.order = 'YXZ';
+    selectedPart.rotation.y += deltaX * 0.01;
+    selectedPart.rotation.x += deltaY * 0.01;
+  }
+  else {
+    selectedPart.rotation.z += deltaX * 0.01 * Math.cos(yaw);
+    selectedPart.rotation.x +=
+      deltaX * 0.01 * Math.sin(yaw) +
+      deltaY * 0.01 * Math.cos(yaw);
+  }
 
   previousMouse.set(event.clientX, event.clientY);
 });
@@ -378,7 +432,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  [camera.left, camera.right, camera.top, camera.bottom] = cam();
   camera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);

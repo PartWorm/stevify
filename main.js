@@ -2,8 +2,6 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const chokidar = require('chokidar');
 
-require('electron-reload')(__dirname);
-
 let mainWindow;
 
 function createWindow() {
@@ -22,7 +20,11 @@ function createWindow() {
   const skinPath = path.join(__dirname, 'skins', 'skin.png');
 
   const watcher = chokidar.watch(skinPath, {
-    ignoreInitial: true
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 200,
+      pollInterval: 50
+    },
   });
 
   watcher.on('change', () => {
