@@ -93,12 +93,12 @@ function createCube(w, h, d, uv, texture, inflate = 0) {
   }
 
   const order = [
-    uv.right,
     uv.left,
+    uv.right,
     uv.top,
     uv.bottom,
     uv.front,
-    uv.back
+    uv.back,
   ];
 
   for (let i = 0; i < order.length; i++) {
@@ -184,11 +184,11 @@ function buildPlayer(texture) {
     8,
     {
       right: { x: 0, y: 8, w: 8, h: 8 },
-      left: { x: 16, y: 8, w: 8, h: 8 },
-      top: { x: 8, y: 0, w: 8, h: 8 },
-      bottom: { x: 16, y: 0, w: 8, h: 8 },
       front: { x: 8, y: 8, w: 8, h: 8 },
-      back: { x: 24, y: 8, w: 8, h: 8 }
+      left: { x: 16, y: 8, w: 8, h: 8 },
+      back: { x: 24, y: 8, w: 8, h: 8 },
+      top: { x: 8, y: 0, w: 8, h: 8 },
+      bottom: { x: 16 + 8, y: 0 + 8, w: -8, h: -8 },
     },
     bodyMaterial
   );
@@ -199,11 +199,11 @@ function buildPlayer(texture) {
     8,
     {
       right: { x: 32, y: 8, w: 8, h: 8 },
-      left: { x: 48, y: 8, w: 8, h: 8 },
-      top: { x: 40, y: 0, w: 8, h: 8 },
-      bottom: { x: 48, y: 0, w: 8, h: 8 },
       front: { x: 40, y: 8, w: 8, h: 8 },
-      back: { x: 56, y: 8, w: 8, h: 8 }
+      left: { x: 48, y: 8, w: 8, h: 8 },
+      back: { x: 56, y: 8, w: 8, h: 8 },
+      top: { x: 40, y: 0, w: 8, h: 8 },
+      bottom: { x: 48 + 8, y: 0 + 8, w: -8, h: -8 },
     },
     bodyMaterial,
     0.5
@@ -224,11 +224,11 @@ function buildPlayer(texture) {
     4,
     {
       right: { x: 16, y: 20, w: 4, h: 12 },
-      left: { x: 28, y: 20, w: 4, h: 12 },
-      top: { x: 20, y: 16, w: 8, h: 4 },
-      bottom: { x: 28, y: 16, w: 8, h: 4 },
       front: { x: 20, y: 20, w: 8, h: 12 },
-      back: { x: 32, y: 20, w: 8, h: 12 }
+      left: { x: 28, y: 20, w: 4, h: 12 },
+      back: { x: 32, y: 20, w: 8, h: 12 },
+      top: { x: 20, y: 16, w: 8, h: 4 },
+      bottom: { x: 28 + 8, y: 16 + 4, w: -8, h: -4 },
     },
     bodyMaterial
   );
@@ -239,11 +239,11 @@ function buildPlayer(texture) {
     4,
     {
       right: { x: 16, y: 36, w: 4, h: 12 },
-      left: { x: 28, y: 36, w: 4, h: 12 },
-      top: { x: 20, y: 32, w: 8, h: 4 },
-      bottom: { x: 28, y: 32, w: 8, h: 4 },
       front: { x: 20, y: 36, w: 8, h: 12 },
-      back: { x: 32, y: 36, w: 8, h: 12 }
+      left: { x: 28, y: 36, w: 4, h: 12 },
+      back: { x: 32, y: 36, w: 8, h: 12 },
+      top: { x: 20 + 8, y: 32 + 4, w: -8, h: -4 },
+      bottom: { x: 28 + 8, y: 32 + 4, w: -8, h: -4 },
     },
     bodyMaterial,
     0.5
@@ -253,7 +253,7 @@ function buildPlayer(texture) {
     'body',
     bodyInner,
     bodyOuter,
-    new THREE.Vector3(0, 18, 0)
+    new THREE.Vector3(0, 18, 0),
   );
 
   playerRoot.add(body);
@@ -261,22 +261,22 @@ function buildPlayer(texture) {
   function armUV(baseX, baseY) {
     return {
       right: { x: baseX, y: baseY + 4, w: 4, h: 12 },
-      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
-      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
-      bottom: { x: baseX + 8, y: baseY, w: 4, h: 4 },
       front: { x: baseX + 4, y: baseY + 4, w: 4, h: 12 },
-      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 }
+      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
+      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 },
+      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
+      bottom: { x: baseX + 8, y: baseY + 4, w: 4, h: -4 },
     };
   }
 
   function legUV(baseX, baseY) {
     return {
       right: { x: baseX, y: baseY + 4, w: 4, h: 12 },
-      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
-      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
-      bottom: { x: baseX + 8, y: baseY, w: 4, h: 4 },
       front: { x: baseX + 4, y: baseY + 4, w: 4, h: 12 },
-      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 }
+      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
+      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 },
+      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
+      bottom: { x: baseX + 8 + 4, y: baseY + 4, w: -4, h: -4 },
     };
   }
 
@@ -405,7 +405,9 @@ window.addEventListener('pointermove', (event) => {
     selectedPart.rotation.x += deltaY * 0.01;
   }
   else {
-    selectedPart.rotation.z += deltaX * 0.01 * Math.cos(yaw);
+    selectedPart.rotation.z +=
+      deltaX * 0.01 * Math.cos(yaw) -
+      deltaY * 0.01 * Math.sin(yaw);
     selectedPart.rotation.x +=
       deltaX * 0.01 * Math.sin(yaw) +
       deltaY * 0.01 * Math.cos(yaw);
