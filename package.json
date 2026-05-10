@@ -7,8 +7,11 @@
   },
   "dependencies": {
     "chokidar": "^4.0.1",
-    "electron": "^36.2.0",
+    "electron": "^42.0.1",
+    "electron-dl": "^4.0.0",
     "electron-reload": "^2.0.0-alpha.1",
-    "three": "^0.176.0"
+    "material-design-icons": "^3.0.1",
+    "three": "^0.176.0",
+    "unused-filename": "^4.0.1"
   }
 }

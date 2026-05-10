@@ -4,4 +4,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     on_skin_updated: cb => ipcRenderer.on('skin-updated', cb),
     select_skin: () => ipcRenderer.invoke('select-skin'),
     set_always_on_top: enabled => ipcRenderer.invoke('set-always-on-top', enabled),
+    download: url => ipcRenderer.invoke('download', url),
 });

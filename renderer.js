@@ -14,8 +14,8 @@ let scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
 
 function ortho_cam() {
-    let ww = window.innerWidth;
-    let wh = window.innerHeight;
+    let ww = 800;
+    let wh = 800;
     return [
         -ww / 2 * 0.05,
         ww / 2 * 0.05,
@@ -50,16 +50,6 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-function save_screenshot() {
-    composer.render();
-
-    let link = document.createElement("a");
-    link.download = "threejs-scene.png";
-    link.href = renderer.domElement.toDataURL("image/png");
-    link.click();
-}
-$('#take-screenshot').addEventListener('click', save_screenshot);
-
 let composer = new EffectComposer(renderer);
 
 let ssaa_pass = new SSAARenderPass(scene, camera);
@@ -69,10 +59,11 @@ composer.addPass(ssaa_pass);
 composer.addPass(new OutputPass());
 
 let orbit = new OrbitControls(camera, renderer.domElement);
+orbit.enablePan = false;
 orbit.target.set(0, 16, 0);
 
 let light = new THREE.DirectionalLight(0xffffff, 1.2);
-light.position.set(-40, 100, 40);
+light.position.set(-40, 80, 40);
 light.castShadow = true;
 let range = 30;
 light.shadow.camera.left = -range;
@@ -407,7 +398,8 @@ function migrate_skin(tex) {
     return new_tex;
 }
 
-function load_skin(path) {
+function load_skin(name, path) {
+    document.title = name;
     loader.load(
         path.startsWith('data:') ? path : `${path}?${Date.now()}`,
         skin => {
@@ -432,16 +424,310 @@ function load_skin(path) {
     );
 }
 
+function template(str) {
+    let dom = document.createElement('template');
+    dom.innerHTML = str.trim();
+    return dom.content.firstChild;
+}
+
+let view = (() => {
+    let base = (() => {
+        let base =
+            template(`
+                <div style="
+                    position: absolute;
+                    left: 50%;
+                    top: 8px;
+
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    padding: 6px 8px;
+
+                    transform: translateX(-50%) translateY(0);
+
+                    background: #fff6;
+                    backdrop-filter: blur(8px);
+                    filter: drop-shadow(0 2px 8px #0004);
+                    border-radius: 32px;
+                    corner-shape: superellipse(1.5);
+                "></div>
+            `);
+
+        document.documentElement.addEventListener('mouseenter', () => {
+            base.style.transition = 'transform 500ms cubic-bezier(0.17, 1.43, 0.64, 1)';
+            base.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        document.documentElement.addEventListener('mouseleave', () => {
+            base.style.transition = 'transform 500ms cubic-bezier(0.36, 0, 0.76, -0.41)';
+            base.style.transform = 'translateX(-50%) translateY(-80px)';
+        });
+
+        return base;
+    })();
+
+    document.body.appendChild(base);
+
+    function group() {
+        return (
+            template(`
+                <div style="
+                    display: flex;
+                    flex-direction: row;
+                    gap: -2px;
+                ">
+                </div>
+            `)
+        );
+    }
+
+    function divider() {
+        return (
+            template(`
+                <div style="
+                    display: flex;
+                    margin: 0 6px;
+                    width: 1px;
+                    height: 16px;
+                    background: #0003;
+                ">
+                </div>
+            `)
+        );
+    }
+
+    function btn(src) {
+        let btn =
+            template(`
+                <div style="
+                    display: flex;
+                    width: 36px;
+                    height: 36px;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: transform 0.1s ease, opacity 0.3s ease;
+                    user-select: none;
+                ">
+                </div>
+            `);
+
+        let icon =
+            template(`
+                <span class="material-symbols-outlined"
+                    style="transform: scale(calc(26 / 24));">${src}</span>
+            `);
+
+        btn.appendChild(icon);
+
+        let base_scale = src == 'download' ? 1.1 : src == 'light_mode' ? 0.88 : 1;
+
+        let st = {
+            hover: false,
+            down: false,
+            down_override: false,
+        };
+        let raising;
+        function set_st(new_st) {
+            if (new_st.down || new_st.down_override) {
+                btn.style.transition = 'transform 0.08s ease';
+            }
+            else {
+                btn.style.transition = 'transform 0.15s ease';
+            }
+
+            Object.assign(st, new_st);
+
+            if (st.down || st.down_override) {
+                btn.style.transform = `scale(${0.93 * base_scale})`;
+            }
+            else if (st.hover) {
+                btn.style.transform = `scale(${1.06 * base_scale})`;
+            }
+            else {
+                btn.style.transform = `scale(${1 * base_scale})`;
+            }
+        }
+        set_st({});
+
+        btn.addEventListener('mousedown', () => {
+            raising && clearTimeout(raising);
+            set_st({ down: true });
+        });
+
+        window.addEventListener('mouseup', () => {
+            raising = setTimeout(() => {
+                set_st({ down: false });
+            }, 80);
+        });
+
+        btn.addEventListener('mouseenter', () => {
+            set_st({ hover: true });
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            set_st({ hover: false });
+        });
+
+        return {
+            el: btn,
+            icon,
+            keep_down() {
+                raising && clearTimeout(raising);
+                set_st({ down_override: true });
+            },
+            unkeep_down() {
+                raising = setTimeout(() => {
+                    set_st({ down_override: false });
+                }, 80);
+            },
+        };
+    }
+
+    let g1 = group();
+    base.appendChild(g1);
+
+    base.appendChild(divider());
+
+    let g2 = group();
+    base.appendChild(g2);
+
+    base.appendChild(divider());
+
+    let g3 = group();
+    base.appendChild(g3);
+
+    let select_skin = btn('checkroom');
+    let copy = btn('content_copy');
+    let download = btn('download');
+    let toggle_light = btn('light_mode');
+
+    g1.appendChild(select_skin.el);
+    g2.appendChild(toggle_light.el);
+    g3.appendChild(copy.el);
+    g3.appendChild(download.el);
+
+    let copy2 = (() => {
+        let timeout;
+        return {
+            el: copy.el,
+            ok() {
+                if (timeout) {
+                    return;
+                }
+
+                let chk_color = '#004e80';
+
+                let chk =
+                    template(`
+                        <svg viewBox="0 0 24 24" style="
+                            position: absolute;
+                            left: calc(50% - 14px);
+                            top: calc(50% - 14px);
+                            width: 28px;
+                            height: 28px;
+                            fill: none;
+                            stroke: ${chk_color};
+                            stroke-width: 1;
+                            stroke-linecap: round;
+                            stroke-linejoin: round;
+                            transform: scale(1.3);
+                        ">
+                            <path
+                                d="M7 12.5l3 3 7-7"
+                                class="check"
+                                pathLength="100"
+                                style="
+                                    stroke-dasharray: 100;
+                                    stroke-dashoffset: 100;
+                                "
+                            />
+                        </svg>
+                    `);
+
+                copy.el.appendChild(chk);
+
+                let path = chk.querySelector('path');
+
+                path.style.transition = 'none';
+                path.style.strokeDashoffset = '100';
+                path.style.opacity = '1';
+
+                path.getBoundingClientRect();
+
+                path.style.transition = `
+                    stroke-dashoffset 300ms cubic-bezier(.36,0,.16,1),
+                    opacity 300ms ease-out
+                `;
+                path.style.strokeDashoffset = '0';
+
+                copy.icon.style.transition = `
+                    color 300ms ease,
+                    opacity 300ms ease
+                `;
+                copy.icon.style.color = chk_color;
+                copy.icon.style.opacity = '0.5';
+                copy.keep_down();
+
+                timeout = setTimeout(() => {
+                    timeout = undefined;
+                    path.style.opacity = '0';
+                    copy.icon.style.color = '';
+                    copy.icon.style.opacity = '';
+                    copy.unkeep_down();
+                    setTimeout(() => {
+                        chk.remove();
+                    }, 300);
+                }, 1500);
+            },
+        };
+    })();
+
+    return {
+        select_skin,
+        copy: copy2,
+        download,
+        toggle_light,
+    };
+})();
+
 let api = window.electronAPI;
 
-api.on_skin_updated((_, { path }) => {
-    load_skin(path);
+api.on_skin_updated((_, { name, path }) => {
+    load_skin(name, path);
 });
 
-$('#select-skin').addEventListener('click', async () => {
+view.select_skin.el.addEventListener('click', async () => {
     await api.set_always_on_top(false);
     await api.select_skin();
     await api.set_always_on_top(true);
+});
+
+view.download.el.addEventListener('click', () => {
+    composer.render();
+    api.download(renderer.domElement.toDataURL("image/png"));
+});
+
+view.copy.el.addEventListener('click', () => {
+    composer.render();
+    renderer.domElement.toBlob(async blob => {
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'image/png': blob,
+                }),
+            ]);
+            view.copy.ok();
+        }
+        catch (err) {
+            console.error('Failed to copy image:', err);
+        }
+    }, 'image/png');
+});
+
+view.toggle_light.el.addEventListener('click', () => {
+    light.castShadow = !light.castShadow;
 });
 
 let raycaster = new THREE.Raycaster();
@@ -536,4 +822,4 @@ function animate() {
 
 animate();
 
-load_skin('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAABhWlDQ1BJQ0MgcHJvZmlsZQAAKJF9kb9Lw0AcxV9ba6VUFOwgIpihOtlFRRxrFYpQIdQKrTqYXPpDaNKQpLg4Cq4FB38sVh1cnHV1cBUEwR8g/gHipOgiJX4vKbSI8eC4D+/uPe7eAf5GhalmVwJQNcvIpJJCLr8ihF4RRDfC6MeIxEx9VhTT8Bxf9/Dx9S7Os7zP/Tl6lYLJAJ9AnGC6YRGvE09vWjrnfeIoK0sK8TnxuEEXJH7kuuzyG+eSw36eGTWymTniKLFQ6mC5g1nZUImniGOKqlG+P+eywnmLs1qpsdY9+QsjBW15ies0h5HCAhYhQoCMGjZQgYU4rRopJjK0n/TwDzl+kVwyuTbAyDGPKlRIjh/8D353axYnJ9ykSBIIvtj2xygQ2gWaddv+Prbt5gkQeAautLa/2gBmPkmvt7XYEdC3DVxctzV5D7jcAQafdMmQHClA018sAu9n9E15YOAWCK+6vbX2cfoAZKmr9A1wcAiMlSh7zePdPZ29/Xum1d8PTIFylxB8JroAAAAGYktHRADNAEAA/7Ve9VgAAAAJcEhZcwAALiMAAC4jAXilP3YAAAAHdElNRQfqBQoIGyKuEyaWAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAAJNJREFUaN7t2MENgCAMheHWuAln9mOEjsMunJlFz3JoQ4jRhP9da4j5gspTJUgp5ZKFmJnKj3PI5gEAAAAAAGDnnLVW9zufc3YXaK258967u35KSdkBAAAAAAAAAPBJdLb/R/3+7f8Hq/fHDgAAgOc7YOwC49l/POvPzqPusHp9NI+6Bo8AAAAAAAAAAAAAAACb5gYswy1PiwN9MQAAAABJRU5ErkJggg==');
+load_skin('Untitled', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAABhWlDQ1BJQ0MgcHJvZmlsZQAAKJF9kb9Lw0AcxV9ba6VUFOwgIpihOtlFRRxrFYpQIdQKrTqYXPpDaNKQpLg4Cq4FB38sVh1cnHV1cBUEwR8g/gHipOgiJX4vKbSI8eC4D+/uPe7eAf5GhalmVwJQNcvIpJJCLr8ihF4RRDfC6MeIxEx9VhTT8Bxf9/Dx9S7Os7zP/Tl6lYLJAJ9AnGC6YRGvE09vWjrnfeIoK0sK8TnxuEEXJH7kuuzyG+eSw36eGTWymTniKLFQ6mC5g1nZUImniGOKqlG+P+eywnmLs1qpsdY9+QsjBW15ies0h5HCAhYhQoCMGjZQgYU4rRopJjK0n/TwDzl+kVwyuTbAyDGPKlRIjh/8D353axYnJ9ykSBIIvtj2xygQ2gWaddv+Prbt5gkQeAautLa/2gBmPkmvt7XYEdC3DVxctzV5D7jcAQafdMmQHClA018sAu9n9E15YOAWCK+6vbX2cfoAZKmr9A1wcAiMlSh7zePdPZ29/Xum1d8PTIFylxB8JroAAAAGYktHRADNAEAA/7Ve9VgAAAAJcEhZcwAALiMAAC4jAXilP3YAAAAHdElNRQfqBQoIGyKuEyaWAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAAJNJREFUaN7t2MENgCAMheHWuAln9mOEjsMunJlFz3JoQ4jRhP9da4j5gspTJUgp5ZKFmJnKj3PI5gEAAAAAAGDnnLVW9zufc3YXaK258967u35KSdkBAAAAAAAAAPBJdLb/R/3+7f8Hq/fHDgAAgOc7YOwC49l/POvPzqPusHp9NI+6Bo8AAAAAAAAAAAAAAACb5gYswy1PiwN9MQAAAABJRU5ErkJggg==');

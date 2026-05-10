@@ -1,12 +1,16 @@
 const { app, dialog, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const chokidar = require('chokidar');
+const { default: electron_dl, CancelError, download  } = require('electron-dl');
+const { unusedFilenameSync } = require('unused-filename');
+
+electron_dl();
 
 let main_window;
 
-function notify_update(path) {
+function notify_update(patharg) {
     if (main_window) {
-        main_window.webContents.send('skin-updated', { path });
+        main_window.webContents.send('skin-updated', { name: path.basename(patharg), path: patharg });
     }
 }
 
@@ -33,9 +37,12 @@ function create_window() {
                 nodeIntegration: false,
             },
             alwaysOnTop: true,
+            useContentSize: true,
         });
 
     main_window.loadFile('index.html');
+
+    main_window.setAspectRatio(1);
 }
 
 app.whenReady().then(create_window);
@@ -68,3 +75,23 @@ ipcMain.handle('set-always-on-top', (_, enabled) => {
     win.setAlwaysOnTop(enabled);
     return win.isAlwaysOnTop();
 })
+
+ipcMain.handle('download', async (_, url) => {
+	let win = BrowserWindow.getFocusedWindow();
+    if (!skin_path) {
+        return;
+    }
+	try {
+        let dir = app.getPath('downloads');
+        let name = path.basename(unusedFilenameSync(path.join(dir, path.basename(skin_path))));
+		console.log(await download(win, url, { directory: dir, filename: name }));
+	}
+    catch (e) {
+		if (e instanceof CancelError) {
+			console.info('item.cancel() was called');
+		}
+        else {
+			console.error(e);
+		}
+	}
+});
