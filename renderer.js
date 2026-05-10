@@ -4,7 +4,11 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
 
-let canvas = document.getElementById('canvas');
+function $(q) {
+    return document.querySelector(q);
+}
+
+let canvas = $('#canvas');
 
 let scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
@@ -378,9 +382,9 @@ function migrate_skin(tex) {
     return new_tex;
 }
 
-function load_skin() {
+function load_skin(path) {
     loader.load(
-        './skins/skin.png?' + Date.now(),
+        path.startsWith('data:') ? path : `${path}?${Date.now()}`,
         skin => {
             skin = migrate_skin(skin);
             nearest_filter(skin);
@@ -403,10 +407,16 @@ function load_skin() {
     );
 }
 
-load_skin();
+let api = window.electronAPI;
 
-window.electronAPI.onSkinUpdated(() => {
-    load_skin();
+api.on_skin_updated((_, { path }) => {
+    load_skin(path);
+});
+
+$('button').addEventListener('click', async () => {
+    await api.set_always_on_top(false);
+    await api.select_skin();
+    await api.set_always_on_top(true);
 });
 
 let raycaster = new THREE.Raycaster();
@@ -500,3 +510,5 @@ function animate() {
 }
 
 animate();
+
+load_skin('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAgCAYAAACinX6EAAABhWlDQ1BJQ0MgcHJvZmlsZQAAKJF9kb9Lw0AcxV9ba6VUFOwgIpihOtlFRRxrFYpQIdQKrTqYXPpDaNKQpLg4Cq4FB38sVh1cnHV1cBUEwR8g/gHipOgiJX4vKbSI8eC4D+/uPe7eAf5GhalmVwJQNcvIpJJCLr8ihF4RRDfC6MeIxEx9VhTT8Bxf9/Dx9S7Os7zP/Tl6lYLJAJ9AnGC6YRGvE09vWjrnfeIoK0sK8TnxuEEXJH7kuuzyG+eSw36eGTWymTniKLFQ6mC5g1nZUImniGOKqlG+P+eywnmLs1qpsdY9+QsjBW15ies0h5HCAhYhQoCMGjZQgYU4rRopJjK0n/TwDzl+kVwyuTbAyDGPKlRIjh/8D353axYnJ9ykSBIIvtj2xygQ2gWaddv+Prbt5gkQeAautLa/2gBmPkmvt7XYEdC3DVxctzV5D7jcAQafdMmQHClA018sAu9n9E15YOAWCK+6vbX2cfoAZKmr9A1wcAiMlSh7zePdPZ29/Xum1d8PTIFylxB8JroAAAAGYktHRADNAEAA/7Ve9VgAAAAJcEhZcwAALiMAAC4jAXilP3YAAAAHdElNRQfqBQoIGyKuEyaWAAAAGXRFWHRDb21tZW50AENyZWF0ZWQgd2l0aCBHSU1QV4EOFwAAAJNJREFUaN7t2MENgCAMheHWuAln9mOEjsMunJlFz3JoQ4jRhP9da4j5gspTJUgp5ZKFmJnKj3PI5gEAAAAAAGDnnLVW9zufc3YXaK258967u35KSdkBAAAAAAAAAPBJdLb/R/3+7f8Hq/fHDgAAgOc7YOwC49l/POvPzqPusHp9NI+6Bo8AAAAAAAAAAAAAAACb5gYswy1PiwN9MQAAAABJRU5ErkJggg==');

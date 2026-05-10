@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minecraft Skin Viewer</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minecraft Skin Viewer</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+    <canvas id="canvas"></canvas>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./node_modules/three/build/three.module.js",
-      "three/examples/jsm/": "./node_modules/three/examples/jsm/"
+    <button style="position: absolute; left: 0; top: 0;">Select skin</button>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./node_modules/three/build/three.module.js",
+            "three/examples/jsm/": "./node_modules/three/examples/jsm/"
+        }
     }
-  }
-  </script>
+    </script>
 
-  <script type="module" src="renderer.js"></script>
+    <script type="module" src="renderer.js"></script>
 </body>
 </html>
