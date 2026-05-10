@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js';
 
 let canvas = document.getElementById('canvas');
 
@@ -42,6 +45,14 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+let composer = new EffectComposer(renderer);
+
+let ssaa_pass = new SSAARenderPass(scene, camera);
+ssaa_pass.sampleLevel = 4;
+composer.addPass(ssaa_pass);
+
+composer.addPass(new OutputPass());
 
 let orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 16, 0);
@@ -427,7 +438,7 @@ function animate() {
 
     orbit.update();
 
-    renderer.render(scene, camera);
+    composer.render();
 }
 
 animate();
