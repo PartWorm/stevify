@@ -320,11 +320,69 @@ function build_player(texture) {
     scene.add(player_root);
 }
 
+function migrate_skin(tex) {
+    let image = tex.image;
+    if (!image || image.width !== 64 || image.height !== 32) {
+        return tex;
+    }
+
+    let canvas = document.createElement("canvas");
+    canvas.width = 64;
+    canvas.height = 64;
+
+    let ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.drawImage(image, 0, 0);
+
+    function copy(sx, sy, sw, sh, dx, dy, flipX = false) {
+        ctx.save();
+
+        if (flipX) {
+            ctx.scale(-1, 1);
+            dx = -dx - sw;
+        }
+
+        ctx.drawImage(
+            image,
+            sx, sy, sw, sh,
+            dx, dy, sw, sh
+        );
+
+        ctx.restore();
+    }
+
+    // ----- LEFT LEG -----
+    copy(4, 16, 4, 4, 20, 48, true);
+    copy(8, 16, 4, 4, 24, 48, true);
+    copy(0, 20, 4, 12, 16, 52, true);
+    copy(4, 20, 4, 12, 20, 52, true);
+    copy(8, 20, 4, 12, 24, 52, true);
+    copy(12, 20, 4, 12, 28, 52, true);
+
+    // ----- LEFT ARM -----
+    copy(44, 16, 4, 4, 36, 48, true);
+    copy(48, 16, 4, 4, 40, 48, true);
+    copy(40, 20, 4, 12, 32, 52, true);
+    copy(44, 20, 4, 12, 36, 52, true);
+    copy(48, 20, 4, 12, 40, 52, true);
+    copy(52, 20, 4, 12, 44, 52, true);
+
+    let new_tex = new THREE.CanvasTexture(canvas);
+    new_tex.magFilter = THREE.NearestFilter;
+    new_tex.minFilter = THREE.NearestFilter;
+    new_tex.wrapS = THREE.ClampToEdgeWrapping;
+    new_tex.wrapT = THREE.ClampToEdgeWrapping;
+    new_tex.needsUpdate = true;
+
+    return new_tex;
+}
+
 function load_skin() {
     loader.load(
         './skins/skin.png?' + Date.now(),
         skin => {
-            skin.needsUpdate = true;
+            skin = migrate_skin(skin);
             nearest_filter(skin);
             if (!mat) {
                 mat =
