@@ -78,12 +78,10 @@ ipcMain.handle('set-always-on-top', (_, enabled) => {
 
 ipcMain.handle('download', async (_, url) => {
 	let win = BrowserWindow.getFocusedWindow();
-    if (!skin_path) {
-        return;
-    }
 	try {
         let dir = app.getPath('downloads');
-        let name = path.basename(unusedFilenameSync(path.join(dir, path.basename(skin_path))));
+        let spname = !skin_path ? 'Untitled.png' : path.basename(skin_path);
+        let name = path.basename(unusedFilenameSync(path.join(dir, spname)));
 		console.log(await download(win, url, { directory: dir, filename: name }));
 	}
     catch (e) {

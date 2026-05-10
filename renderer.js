@@ -430,7 +430,7 @@ function template(str) {
     return dom.content.firstChild;
 }
 
-let view = (() => {
+let toolbar = (() => {
     let base = (() => {
         let base =
             template(`
@@ -447,6 +447,7 @@ let view = (() => {
                     transform: translateX(-50%) translateY(0);
 
                     background: #fff6;
+
                     backdrop-filter: blur(8px);
                     filter: drop-shadow(0 2px 8px #0004);
                     border-radius: 32px;
@@ -529,6 +530,7 @@ let view = (() => {
             down_override: false,
         };
         let raising;
+        let raising2;
         function set_st(new_st) {
             if (new_st.down || new_st.down_override) {
                 btn.style.transition = 'transform 0.08s ease';
@@ -574,11 +576,11 @@ let view = (() => {
             el: btn,
             icon,
             keep_down() {
-                raising && clearTimeout(raising);
+                raising2 && clearTimeout(raising2);
                 set_st({ down_override: true });
             },
             unkeep_down() {
-                raising = setTimeout(() => {
+                raising2 = setTimeout(() => {
                     set_st({ down_override: false });
                 }, 80);
             },
@@ -698,18 +700,18 @@ api.on_skin_updated((_, { name, path }) => {
     load_skin(name, path);
 });
 
-view.select_skin.el.addEventListener('click', async () => {
+toolbar.select_skin.el.addEventListener('click', async () => {
     await api.set_always_on_top(false);
     await api.select_skin();
     await api.set_always_on_top(true);
 });
 
-view.download.el.addEventListener('click', () => {
+toolbar.download.el.addEventListener('click', () => {
     composer.render();
     api.download(renderer.domElement.toDataURL("image/png"));
 });
 
-view.copy.el.addEventListener('click', () => {
+toolbar.copy.el.addEventListener('click', () => {
     composer.render();
     renderer.domElement.toBlob(async blob => {
         try {
@@ -718,7 +720,7 @@ view.copy.el.addEventListener('click', () => {
                     'image/png': blob,
                 }),
             ]);
-            view.copy.ok();
+            toolbar.copy.ok();
         }
         catch (err) {
             console.error('Failed to copy image:', err);
@@ -726,7 +728,7 @@ view.copy.el.addEventListener('click', () => {
     }, 'image/png');
 });
 
-view.toggle_light.el.addEventListener('click', () => {
+toolbar.toggle_light.el.addEventListener('click', () => {
     light.castShadow = !light.castShadow;
 });
 
