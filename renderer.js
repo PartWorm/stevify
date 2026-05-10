@@ -1,451 +1,433 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const canvas = document.getElementById('canvas');
+let canvas = document.getElementById('canvas');
 
-const scene = new THREE.Scene();
+let scene = new THREE.Scene();
 scene.background = new THREE.Color('skyblue');
 
-let cam = () => {
-  let ww = window.innerWidth;
-  let wh = window.innerHeight;
-  return [
-    -ww / 2 * 0.05,
-    ww / 2 * 0.05,
-    wh / 2 * 0.05,
-    -wh / 2 * 0.05,
-  ];
-};
+function ortho_cam() {
+    let ww = window.innerWidth;
+    let wh = window.innerHeight;
+    return [
+        -ww / 2 * 0.05,
+        ww / 2 * 0.05,
+        wh / 2 * 0.05,
+        -wh / 2 * 0.05,
+    ];
+}
 
-let camera = new THREE.PerspectiveCamera(
-  45,
-  1,
-  0.1,
-  1000
-);
-camera = new THREE.OrthographicCamera(
-  ...cam(),
-  1,
-  1000,
-);
+let camera =
+    new THREE.PerspectiveCamera(
+        45,
+        1,
+        0.1,
+        1000
+    );
+camera =
+    new THREE.OrthographicCamera(
+        ...ortho_cam(),
+        1,
+        1000,
+    );
 camera.position.set(-40, 60, 50);
 
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: false,
-});
+let renderer =
+    new THREE.WebGLRenderer({
+        canvas,
+        antialias: false,
+    });
 
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const orbit = new OrbitControls(camera, renderer.domElement);
-// orbit.enableDamping = true;
+let orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 16, 0);
 
 /*
-const light = new THREE.DirectionalLight(0xffffff, 1.2);
+let light = new THREE.DirectionalLight(0xffffff, 1.2);
 light.position.set(20, 30, 20);
 light.castShadow = true;
 scene.add(light);
 */
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+// scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-/*
-const grid = new THREE.GridHelper(100, 100);
-scene.add(grid);
-*/
+let loader = new THREE.TextureLoader();
 
-const loader = new THREE.TextureLoader();
+let player_root;
 
-let playerRoot;
-let currentTransform;
+let selectable_parts = [];
 
-const selectableParts = [];
-
-function nearestFilter(texture) {
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  texture.colorSpace = THREE.SRGBColorSpace;
+function nearest_filter(tex) {
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.colorSpace = THREE.SRGBColorSpace;
 }
 
-function createCube(w, h, d, uv, texture, inflate = 0) {
-  const geometry = new THREE.BoxGeometry(
-    w + inflate * 2,
-    h + inflate * 2,
-    d + inflate * 2,
-  );
+function create_cube(w, h, d, uv, texture, inflate = 0) {
+    let geometry =
+        new THREE.BoxGeometry(
+            w + inflate * 2,
+            h + inflate * 2,
+            d + inflate * 2,
+        );
 
-  const faceUvs = [];
+    let face_uvs = [];
 
-  const imgWidth = 64;
-  const imgHeight = 64;
+    let img_width = 64;
+    let img_height = 64;
 
-  function rect(x, y, width, height) {
-    return [
-      new THREE.Vector2(x / imgWidth, 1 - y / imgHeight),
-      new THREE.Vector2((x + width) / imgWidth, 1 - y / imgHeight),
-      new THREE.Vector2((x + width) / imgWidth, 1 - (y + height) / imgHeight),
-      new THREE.Vector2(x / imgWidth, 1 - (y + height) / imgHeight)
+    function rect(x, y, width, height) {
+        return [
+            new THREE.Vector2(x / img_width, 1 - y / img_height),
+            new THREE.Vector2((x + width) / img_width, 1 - y / img_height),
+            new THREE.Vector2((x + width) / img_width, 1 - (y + height) / img_height),
+            new THREE.Vector2(x / img_width, 1 - (y + height) / img_height)
+        ];
+    }
+
+    let order = [
+        uv.left,
+        uv.right,
+        uv.top,
+        uv.bottom,
+        uv.front,
+        uv.back,
     ];
-  }
 
-  const order = [
-    uv.left,
-    uv.right,
-    uv.top,
-    uv.bottom,
-    uv.front,
-    uv.back,
-  ];
+    for (let i = 0; i < order.length; i++) {
+        let part = order[i];
+        face_uvs.push(rect(part.x, part.y, part.w, part.h));
+    }
 
-  for (let i = 0; i < order.length; i++) {
-    const part = order[i];
-    faceUvs.push(rect(part.x, part.y, part.w, part.h));
-  }
+    let uv_attr = geometry.attributes.uv;
 
-  const uvAttr = geometry.attributes.uv;
+    for (let face = 0; face < 6; face++) {
+        let uvs = face_uvs[face];
 
-  for (let face = 0; face < 6; face++) {
-    const uvs = faceUvs[face];
+        let idx = face * 4;
 
-    const idx = face * 4;
+        uv_attr.setXY(idx + 0, uvs[0].x, uvs[0].y);
+        uv_attr.setXY(idx + 1, uvs[1].x, uvs[1].y);
+        uv_attr.setXY(idx + 2, uvs[3].x, uvs[3].y);
+        uv_attr.setXY(idx + 3, uvs[2].x, uvs[2].y);
+    }
 
-    uvAttr.setXY(idx + 0, uvs[0].x, uvs[0].y);
-    uvAttr.setXY(idx + 1, uvs[1].x, uvs[1].y);
-    uvAttr.setXY(idx + 2, uvs[3].x, uvs[3].y);
-    uvAttr.setXY(idx + 3, uvs[2].x, uvs[2].y);
-  }
+    uv_attr.needsUpdate = true;
 
-  uvAttr.needsUpdate = true;
+    let mesh = new THREE.Mesh(geometry, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
-  const mesh = new THREE.Mesh(geometry, mat);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  return mesh;
+    return mesh;
 }
 
-function createPart(name, innerMesh, outerMesh, position) {
-  const group = new THREE.Group();
-  group.name = name;
-
-  group.add(innerMesh);
-
-  if (outerMesh) {
-    group.add(outerMesh);
-  }
-
-  group.position.copy(position);
-
-  return group;
+function create_part(name, inner_mesh, outer_mesh, position) {
+    let group = new THREE.Group();
+    group.name = name;
+    group.add(inner_mesh);
+    if (outer_mesh) {
+        group.add(outer_mesh);
+    }
+    group.position.copy(position);
+    return group;
 }
 
-function createPivotForPart(part, pivotPosition, y, z) {
-  if (typeof pivotPosition === 'number') {
-    pivotPosition = new THREE.Vector3(pivotPosition, y, z);
-  };
+function create_pivot(part, pivot_pos, y, z) {
+    if (typeof pivot_pos === 'number') {
+        pivot_pos = new THREE.Vector3(pivot_pos, y, z);
+    };
 
-  const pivot = new THREE.Group();
+    let pivot = new THREE.Group();
+    pivot.position.copy(pivot_pos);
+    pivot.add(part);
 
-  pivot.position.copy(pivotPosition);
+    scene.add(pivot);
 
-  scene.add(pivot);
-  pivot.add(part);
+    part.position.sub(pivot_pos);
 
-  // Move mesh so it keeps the same world position
-  part.position.sub(pivotPosition);
+    selectable_parts.push(pivot);
 
-  selectableParts.push(pivot);
-
-  return pivot;
+    return pivot;
 }
 
 let mat;
 
 let head_pv;
 
-function buildPlayer(texture) {
-  if (playerRoot) {
-    scene.remove(playerRoot);
-  }
+function build_player(texture) {
+    if (player_root) {
+        scene.remove(player_root);
+    }
 
-  selectableParts.length = 0;
+    selectable_parts.length = 0;
 
-  playerRoot = new THREE.Group();
+    player_root = new THREE.Group();
 
-  const bodyMaterial = texture;
+    let head_inner =
+        create_cube(
+            8,
+            8,
+            8,
+            {
+                right: { x: 0, y: 8, w: 8, h: 8 },
+                front: { x: 8, y: 8, w: 8, h: 8 },
+                left: { x: 16, y: 8, w: 8, h: 8 },
+                back: { x: 24, y: 8, w: 8, h: 8 },
+                top: { x: 8, y: 0, w: 8, h: 8 },
+                bottom: { x: 16 + 8, y: 0 + 8, w: -8, h: -8 },
+            },
+            texture
+        );
+    let head_outer =
+        create_cube(
+            8,
+            8,
+            8,
+            {
+                right: { x: 32, y: 8, w: 8, h: 8 },
+                front: { x: 40, y: 8, w: 8, h: 8 },
+                left: { x: 48, y: 8, w: 8, h: 8 },
+                back: { x: 56, y: 8, w: 8, h: 8 },
+                top: { x: 40, y: 0, w: 8, h: 8 },
+                bottom: { x: 48 + 8, y: 0 + 8, w: -8, h: -8 },
+            },
+            texture,
+            0.5
+        );
+    let head =
+        create_part(
+            'head',
+            head_inner,
+            head_outer,
+            new THREE.Vector3(0, 28, 0)
+        );
+    head_pv = create_pivot(head, new THREE.Vector3(0, 24, 0));
+    player_root.add();
 
-  const headInner = createCube(
-    8,
-    8,
-    8,
-    {
-      right: { x: 0, y: 8, w: 8, h: 8 },
-      front: { x: 8, y: 8, w: 8, h: 8 },
-      left: { x: 16, y: 8, w: 8, h: 8 },
-      back: { x: 24, y: 8, w: 8, h: 8 },
-      top: { x: 8, y: 0, w: 8, h: 8 },
-      bottom: { x: 16 + 8, y: 0 + 8, w: -8, h: -8 },
-    },
-    bodyMaterial
-  );
+    let body_inner =
+        create_cube(
+            8,
+            12,
+            4,
+            {
+                right: { x: 16, y: 20, w: 4, h: 12 },
+                front: { x: 20, y: 20, w: 8, h: 12 },
+                left: { x: 28, y: 20, w: 4, h: 12 },
+                back: { x: 32, y: 20, w: 8, h: 12 },
+                top: { x: 20, y: 16, w: 8, h: 4 },
+                bottom: { x: 28 + 8, y: 16 + 4, w: -8, h: -4 },
+            },
+            texture
+        );
+    let body_outer =
+        create_cube(
+            8,
+            12,
+            4,
+            {
+                right: { x: 16, y: 36, w: 4, h: 12 },
+                front: { x: 20, y: 36, w: 8, h: 12 },
+                left: { x: 28, y: 36, w: 4, h: 12 },
+                back: { x: 32, y: 36, w: 8, h: 12 },
+                top: { x: 20 + 8, y: 32 + 4, w: -8, h: -4 },
+                bottom: { x: 28 + 8, y: 32 + 4, w: -8, h: -4 },
+            },
+            texture,
+            0.5
+        );
+    let body =
+        create_part(
+            'body',
+            body_inner,
+            body_outer,
+            new THREE.Vector3(0, 18, 0),
+        );
+    player_root.add(body);
 
-  const headOuter = createCube(
-    8,
-    8,
-    8,
-    {
-      right: { x: 32, y: 8, w: 8, h: 8 },
-      front: { x: 40, y: 8, w: 8, h: 8 },
-      left: { x: 48, y: 8, w: 8, h: 8 },
-      back: { x: 56, y: 8, w: 8, h: 8 },
-      top: { x: 40, y: 0, w: 8, h: 8 },
-      bottom: { x: 48 + 8, y: 0 + 8, w: -8, h: -8 },
-    },
-    bodyMaterial,
-    0.5
-  );
+    function arm_uv(base_x, base_y) {
+        return {
+            right: { x: base_x, y: base_y + 4, w: 4, h: 12 },
+            front: { x: base_x + 4, y: base_y + 4, w: 4, h: 12 },
+            left: { x: base_x + 8, y: base_y + 4, w: 4, h: 12 },
+            back: { x: base_x + 12, y: base_y + 4, w: 4, h: 12 },
+            top: { x: base_x + 4, y: base_y, w: 4, h: 4 },
+            bottom: { x: base_x + 8, y: base_y + 4, w: 4, h: -4 },
+        };
+    }
 
-  const head = createPart(
-    'head',
-    headInner,
-    headOuter,
-    new THREE.Vector3(0, 28, 0)
-  );
-  head_pv = createPivotForPart(head, new THREE.Vector3(0, 24, 0));
-  playerRoot.add();
+    function leg_uv(base_x, base_y) {
+        return {
+            right: { x: base_x, y: base_y + 4, w: 4, h: 12 },
+            front: { x: base_x + 4, y: base_y + 4, w: 4, h: 12 },
+            left: { x: base_x + 8, y: base_y + 4, w: 4, h: 12 },
+            back: { x: base_x + 12, y: base_y + 4, w: 4, h: 12 },
+            top: { x: base_x + 4, y: base_y, w: 4, h: 4 },
+            bottom: { x: base_x + 8 + 4, y: base_y + 4, w: -4, h: -4 },
+        };
+    }
 
-  const bodyInner = createCube(
-    8,
-    12,
-    4,
-    {
-      right: { x: 16, y: 20, w: 4, h: 12 },
-      front: { x: 20, y: 20, w: 8, h: 12 },
-      left: { x: 28, y: 20, w: 4, h: 12 },
-      back: { x: 32, y: 20, w: 8, h: 12 },
-      top: { x: 20, y: 16, w: 8, h: 4 },
-      bottom: { x: 28 + 8, y: 16 + 4, w: -8, h: -4 },
-    },
-    bodyMaterial
-  );
+    let left_arm =
+        create_part(
+            'leftArm',
+            create_cube(4, 12, 4, arm_uv(32, 48), texture),
+            create_cube(4, 12, 4, arm_uv(48, 48), texture, 0.5),
+            new THREE.Vector3(6, 18, 0)
+        );
+    player_root.add(create_pivot(left_arm, 6, 22, 0));
 
-  const bodyOuter = createCube(
-    8,
-    12,
-    4,
-    {
-      right: { x: 16, y: 36, w: 4, h: 12 },
-      front: { x: 20, y: 36, w: 8, h: 12 },
-      left: { x: 28, y: 36, w: 4, h: 12 },
-      back: { x: 32, y: 36, w: 8, h: 12 },
-      top: { x: 20 + 8, y: 32 + 4, w: -8, h: -4 },
-      bottom: { x: 28 + 8, y: 32 + 4, w: -8, h: -4 },
-    },
-    bodyMaterial,
-    0.5
-  );
+    let right_arm =
+        create_part(
+            'rightArm',
+            create_cube(4, 12, 4, arm_uv(40, 16), texture),
+            create_cube(4, 12, 4, arm_uv(40, 32), texture, 0.5),
+            new THREE.Vector3(-6, 18, 0)
+        );
+    player_root.add(create_pivot(right_arm, -6, 22, 0));
 
-  const body = createPart(
-    'body',
-    bodyInner,
-    bodyOuter,
-    new THREE.Vector3(0, 18, 0),
-  );
+    let left_leg =
+        create_part(
+            'leftLeg',
+            create_cube(4, 12, 4, leg_uv(16, 48), texture),
+            create_cube(4, 12, 4, leg_uv(0, 48), texture, 0.5),
+            new THREE.Vector3(2, 6, 0)
+        );
+    player_root.add(create_pivot(left_leg, 2, 12, 0));
 
-  playerRoot.add(body);
+    let right_leg =
+        create_part(
+            'rightLeg',
+            create_cube(4, 12, 4, leg_uv(0, 16), texture),
+            create_cube(4, 12, 4, leg_uv(0, 32), texture, 0.5),
+            new THREE.Vector3(-2, 6, 0)
+        );
+    player_root.add(create_pivot(right_leg, -2, 12, 0));
 
-  function armUV(baseX, baseY) {
-    return {
-      right: { x: baseX, y: baseY + 4, w: 4, h: 12 },
-      front: { x: baseX + 4, y: baseY + 4, w: 4, h: 12 },
-      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
-      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 },
-      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
-      bottom: { x: baseX + 8, y: baseY + 4, w: 4, h: -4 },
-    };
-  }
-
-  function legUV(baseX, baseY) {
-    return {
-      right: { x: baseX, y: baseY + 4, w: 4, h: 12 },
-      front: { x: baseX + 4, y: baseY + 4, w: 4, h: 12 },
-      left: { x: baseX + 8, y: baseY + 4, w: 4, h: 12 },
-      back: { x: baseX + 12, y: baseY + 4, w: 4, h: 12 },
-      top: { x: baseX + 4, y: baseY, w: 4, h: 4 },
-      bottom: { x: baseX + 8 + 4, y: baseY + 4, w: -4, h: -4 },
-    };
-  }
-
-  const leftArm = createPart(
-    'leftArm',
-    createCube(4, 12, 4, armUV(32, 48), bodyMaterial),
-    createCube(4, 12, 4, armUV(48, 48), bodyMaterial, 0.5),
-    new THREE.Vector3(6, 18, 0)
-  );
-  playerRoot.add(createPivotForPart(leftArm, 6, 22, 0));
-
-  const rightArm = createPart(
-    'rightArm',
-    createCube(4, 12, 4, armUV(40, 16), bodyMaterial),
-    createCube(4, 12, 4, armUV(40, 32), bodyMaterial, 0.5),
-    new THREE.Vector3(-6, 18, 0)
-  );
-  playerRoot.add(createPivotForPart(rightArm, -6, 22, 0));
-
-  const leftLeg = createPart(
-    'leftLeg',
-    createCube(4, 12, 4, legUV(16, 48), bodyMaterial),
-    createCube(4, 12, 4, legUV(0, 48), bodyMaterial, 0.5),
-    new THREE.Vector3(2, 6, 0)
-  );
-  playerRoot.add(createPivotForPart(leftLeg, 2, 12, 0));
-
-  const rightLeg = createPart(
-    'rightLeg',
-    createCube(4, 12, 4, legUV(0, 16), bodyMaterial),
-    createCube(4, 12, 4, legUV(0, 32), bodyMaterial, 0.5),
-    new THREE.Vector3(-2, 6, 0)
-  );
-  playerRoot.add(createPivotForPart(rightLeg, -2, 12, 0));
-
-  scene.add(playerRoot);
+    scene.add(player_root);
 }
 
-function loadSkin() {
-  loader.load(
-    './skins/skin.png?' + Date.now(),
-    texture => {
-      texture.needsUpdate = true;
-      nearestFilter(texture);
-      if (!mat) {
-        mat = new THREE.MeshBasicMaterial({
-          map: texture,
-          transparent: true,
-          alphaTest: 0.1,
-          side: THREE.DoubleSide,
-        });
-        buildPlayer();
-      }
-      else {
-        mat.map.dispose();
-        mat.map = texture;
-        mat.needsUpdate = true;
-      }
-    },
-  );
+function load_skin() {
+    loader.load(
+        './skins/skin.png?' + Date.now(),
+        skin => {
+            skin.needsUpdate = true;
+            nearest_filter(skin);
+            if (!mat) {
+                mat =
+                    new THREE.MeshBasicMaterial({
+                        map: skin,
+                        transparent: true,
+                        alphaTest: 0.1,
+                        side: THREE.DoubleSide,
+                    });
+                build_player();
+            }
+            else {
+                mat.map.dispose();
+                mat.map = skin;
+                mat.needsUpdate = true;
+            }
+        },
+    );
 }
 
-loadSkin();
+load_skin();
 
 window.electronAPI.onSkinUpdated(() => {
-  loadSkin();
+    load_skin();
 });
 
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
 
-let selectedPart = null;
-let isDraggingPart = false;
-let previousMouse = new THREE.Vector2();
+let selected_part = null;
+let is_dragging_part = false;
+let previous_mouse = new THREE.Vector2();
 
-function getPartFromIntersection(object) {
-  let target = object;
-
-  while (target && !selectableParts.includes(target)) {
-    target = target.parent;
-  }
-
-  return target;
+function get_part_from_intersection(obj) {
+    let target = obj;
+    while (target && !selectable_parts.includes(target)) {
+        target = target.parent;
+    }
+    return target;
 }
 
-window.addEventListener('pointerdown', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+window.addEventListener('pointerdown', event => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-  raycaster.setFromCamera(mouse, camera);
+    raycaster.setFromCamera(mouse, camera);
 
-  const meshes = [];
+    let meshes = [];
 
-  selectableParts.forEach((part) => {
-    part.traverse((obj) => {
-      if (obj.isMesh) meshes.push(obj);
+    selectable_parts.forEach(part => {
+        part.traverse(obj => {
+            if (obj.isMesh) {
+                meshes.push(obj);
+            }
+        });
     });
-  });
 
-  const intersects = raycaster.intersectObjects(meshes);
+    let intersects = raycaster.intersectObjects(meshes);
 
-  if (intersects.length > 0) {
-    selectedPart = getPartFromIntersection(intersects[0].object);
+    if (intersects.length > 0) {
+        selected_part = get_part_from_intersection(intersects[0].object);
 
-    if (selectedPart) {
-      isDraggingPart = true;
-      orbit.enabled = false;
+        if (selected_part) {
+            is_dragging_part = true;
+            orbit.enabled = false;
 
-      previousMouse.set(event.clientX, event.clientY);
+            previous_mouse.set(event.clientX, event.clientY);
+        }
     }
-  }
 });
 
-window.addEventListener('pointermove', (event) => {
-  if (!isDraggingPart || !selectedPart) return;
+window.addEventListener('pointermove', event => {
+    if (!is_dragging_part || !selected_part) return;
 
-  const deltaX = event.clientX - previousMouse.x;
-  const deltaY = event.clientY - previousMouse.y;
+    let dx = event.clientX - previous_mouse.x;
+    let dy = event.clientY - previous_mouse.y;
 
-  const yaw = orbit.getAzimuthalAngle();
-  console.log(yaw);
+    let yaw = orbit.getAzimuthalAngle();
 
-  if (selectedPart == head_pv) {
-    selectedPart.rotation.order = 'YXZ';
-    selectedPart.rotation.y += deltaX * 0.01;
-    selectedPart.rotation.x += deltaY * 0.01;
-  }
-  else {
-    selectedPart.rotation.z +=
-      deltaX * 0.01 * Math.cos(yaw) -
-      deltaY * 0.01 * Math.sin(yaw);
-    selectedPart.rotation.x +=
-      deltaX * 0.01 * Math.sin(yaw) +
-      deltaY * 0.01 * Math.cos(yaw);
-  }
+    if (selected_part == head_pv) {
+        selected_part.rotation.order = 'YXZ';
+        selected_part.rotation.y += dx * 0.01;
+        selected_part.rotation.x += dy * 0.01 * Math.cos(yaw);
+    }
+    else {
+        selected_part.rotation.z +=
+            dx * 0.01 * Math.cos(yaw) -
+            dy * 0.01 * Math.sin(yaw);
+        selected_part.rotation.x +=
+            dx * 0.01 * Math.sin(yaw) +
+            dy * 0.01 * Math.cos(yaw);
+    }
 
-  previousMouse.set(event.clientX, event.clientY);
+    previous_mouse.set(event.clientX, event.clientY);
 });
 
 window.addEventListener('pointerup', () => {
-  isDraggingPart = false;
-  orbit.enabled = true;
-});
-
-window.addEventListener('keydown', (e) => {
-  if (!currentTransform) return;
-
-  if (e.key === 'r') {
-    currentTransform.setMode('rotate');
-  }
-
-  if (e.key === 't') {
-    currentTransform.setMode('translate');
-  }
+    is_dragging_part = false;
+    orbit.enabled = true;
 });
 
 window.addEventListener('resize', () => {
-  [camera.left, camera.right, camera.top, camera.bottom] = cam();
-  camera.updateProjectionMatrix();
+    [camera.left, camera.right, camera.top, camera.bottom] = ortho_cam();
+    camera.updateProjectionMatrix();
 
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 function animate() {
-  requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
 
-  orbit.update();
+    orbit.update();
 
-  renderer.render(scene, camera);
+    renderer.render(scene, camera);
 }
 
 animate();
