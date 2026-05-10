@@ -50,6 +50,16 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+function save_screenshot() {
+    composer.render();
+
+    let link = document.createElement("a");
+    link.download = "threejs-scene.png";
+    link.href = renderer.domElement.toDataURL("image/png");
+    link.click();
+}
+$('#take-screenshot').addEventListener('click', save_screenshot);
+
 let composer = new EffectComposer(renderer);
 
 let ssaa_pass = new SSAARenderPass(scene, camera);
@@ -61,14 +71,30 @@ composer.addPass(new OutputPass());
 let orbit = new OrbitControls(camera, renderer.domElement);
 orbit.target.set(0, 16, 0);
 
-/*
 let light = new THREE.DirectionalLight(0xffffff, 1.2);
-light.position.set(20, 30, 20);
+light.position.set(-40, 100, 40);
 light.castShadow = true;
+let range = 30;
+light.shadow.camera.left = -range;
+light.shadow.camera.right = range;
+light.shadow.camera.top = range;
+light.shadow.camera.bottom = -range;
+light.shadow.camera.near = 1;
+light.shadow.camera.far = 200;
+light.shadow.mapSize.width = 2048;
+light.shadow.mapSize.height = 2048;
 scene.add(light);
-*/
 
-// scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+let floor_geom = new THREE.PlaneGeometry(120, 120);
+let floor_mat =
+    new THREE.ShadowMaterial({
+        opacity: 0.7,
+    });
+floor_mat.depthWrite = false;
+let floor = new THREE.Mesh(floor_geom, floor_mat);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
 
 let loader = new THREE.TextureLoader();
 
@@ -135,7 +161,6 @@ function create_cube(w, h, d, uv, texture, inflate = 0) {
 
     let mesh = new THREE.Mesh(geometry, mat);
     mesh.castShadow = true;
-    mesh.receiveShadow = true;
 
     return mesh;
 }
@@ -413,7 +438,7 @@ api.on_skin_updated((_, { path }) => {
     load_skin(path);
 });
 
-$('button').addEventListener('click', async () => {
+$('#select-skin').addEventListener('click', async () => {
     await api.set_always_on_top(false);
     await api.select_skin();
     await api.set_always_on_top(true);
