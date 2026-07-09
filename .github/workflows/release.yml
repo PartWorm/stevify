@@ -8,6 +8,10 @@ on:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
@@ -27,4 +31,5 @@ jobs:
       - name: Build and Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run release
