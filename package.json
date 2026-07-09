@@ -37,13 +37,22 @@
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
     ],
     "mac": {
-        "target": "dmg"
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
-        "target": "nsis"
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
-        "target": "AppImage"
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   }
 }

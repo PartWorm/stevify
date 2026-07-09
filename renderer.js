@@ -264,7 +264,7 @@ function build_player(texture) {
                 front: { x: 20, y: 36, w: 8, h: 12 },
                 left: { x: 28, y: 36, w: 4, h: 12 },
                 back: { x: 32, y: 36, w: 8, h: 12 },
-                top: { x: 20 + 8, y: 32 + 4, w: -8, h: -4 },
+                top: { x: 20, y: 32, w: 8, h: 4 },
                 bottom: { x: 28 + 8, y: 32 + 4, w: -8, h: -4 },
             },
             texture,
@@ -375,17 +375,13 @@ function migrate_skin(tex) {
     // ----- LEFT LEG -----
     copy(4, 16, 4, 4, 20, 48, true);
     copy(8, 16, 4, 4, 24, 48, true);
-    copy(0, 20, 4, 12, 16, 52, true);
-    copy(4, 20, 4, 12, 20, 52, true);
-    copy(8, 20, 4, 12, 24, 52, true);
+    copy(0, 20, 12, 12, 16, 52, true);
     copy(12, 20, 4, 12, 28, 52, true);
 
     // ----- LEFT ARM -----
     copy(44, 16, 4, 4, 36, 48, true);
     copy(48, 16, 4, 4, 40, 48, true);
-    copy(40, 20, 4, 12, 32, 52, true);
-    copy(44, 20, 4, 12, 36, 52, true);
-    copy(48, 20, 4, 12, 40, 52, true);
+    copy(40, 20, 12, 12, 32, 52, true);
     copy(52, 20, 4, 12, 44, 52, true);
 
     let new_tex = new THREE.CanvasTexture(canvas);
@@ -510,6 +506,7 @@ let toolbar = (() => {
                     cursor: pointer;
                     transition: transform 0.1s ease, opacity 0.3s ease;
                     user-select: none;
+                    will-change: transform, opacity;
                 ">
                 </div>
             `);
